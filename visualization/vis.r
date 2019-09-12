@@ -1,4 +1,4 @@
-pacman::p_load(foreign, stringr, ggplot2, plyr, dplyr, lubridate)
+pacman::p_load(foreign, stringr, ggplot2, dplyr, plyr, lubridate)
 rm(list = ls(all.names = TRUE))
 gc(full = TRUE)
 options(stringsAsFactors = FALSE)
@@ -9,12 +9,13 @@ codes <- read.csv("../disease/icd-main.csv", header = TRUE)
 locations <-
   read.csv("../locations/locations.csv.bz2", header = TRUE)
 states <- read.csv("../maps/state-map.csv.bz2", header = TRUE)
-daily <- na.omit(read.csv("../weather-simat2/weather-daily.csv",header = TRUE))
+daily <- read.csv("../weather-simat2/weather-daily.csv",header = TRUE)
 
 cause <- arrange(count(deaths, "cod"), desc(freq))
 
 names(cause)[1] <- "code"
-cause <- join(cause, codes)
+cause$disease <- with(cause,codes$disease[match(code,codes$code)])
+
 # attach(cause)
 # ggplot(cause,aes(x=freq,y=disease)) +
 #               geom_point()+
@@ -75,11 +76,67 @@ ggplot(locs, aes(long, lat)) +
 
 deaths_2008 <-
   deaths[which(
-    deaths$yod == 2008 & deaths$mod != 0 & deaths$dod != 0),
-    ]
+    deaths$yod == 2008 & deaths$mod != 0 & deaths$dod != 0),]
 deaths_2008  <-
   mutate(deaths_2008, dateod = ymd(str_c(yod, mod, dod, sep = '-')))
-deaths_2008  <- subset(count(deaths_2008,"dateod"))
-
 daily <- mutate(daily,day=ymd(daily$day))
-daily$freq <- with(daily,freq[match(day,deaths_2008$dateod)])
+
+deaths_2008$disease <- with(codes,disease[match(deaths_2008$cod,code)])
+deaths_2008$temp_min <- with(daily,temp_min[match(deaths_2008$dateod,day)])
+deaths_2008$temp_max <- with(daily,temp_max[match(deaths_2008$dateod,day)])
+deaths_2008$wind <- with(daily,wind[match(deaths_2008$dateod,day)])
+
+deaths_2008 %>% 
+  count("temp_min") %>% 
+  na.omit() %>% 
+  ggplot(., aes(temp_min,freq),) + 
+  geom_point()+
+  scale_x_continuous()+
+  geom_smooth()
+
+deaths_2008 %>% 
+  group_by(dateod, temp_min) %>% 
+  tally(name = "freq")%>% 
+  filter(freq>=1200) %>%
+  na.omit() %>%
+  ggplot(., aes(temp_min, freq)) +
+  geom_point() +
+  scale_x_continuous() +
+  geom_smooth()
+
+
+
+
+deaths_2008 %>% count("temp_max") %>% na.omit() %>% 
+  ggplot(.,aes(temp_max,freq)) + 
+  geom_point()+
+  scale_x_continuous() +
+  geom_smooth()
+
+deaths_2008 %>% 
+  group_by(dateod, temp_max) %>% 
+  tally(name = "freq")%>% 
+  filter(freq>=1200) %>%
+  na.omit() %>%
+  ggplot(., aes(temp_max, freq)) +
+  geom_point() +
+  scale_x_continuous() +
+  geom_smooth()
+
+
+deaths_2008 %>% count("wind") %>% na.omit() %>% 
+  ggplot(.,aes(wind,freq)) + 
+  geom_point()+
+  scale_x_continuous() +
+  geom_smooth()
+
+deaths_2008 %>% 
+  group_by(dateod, wind) %>% 
+  tally(name = "freq")%>% 
+  filter(freq>=1200) %>% 
+  na.omit() %>%
+  ggplot(., aes(wind, freq)) +
+  geom_point() +
+  scale_x_continuous() +
+  geom_smooth()
+
