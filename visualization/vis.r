@@ -1,14 +1,17 @@
-pacman::p_load(foreign, stringr, ggplot2, plyr,dplyr)
+pacman::p_load(foreign, stringr, ggplot2, plyr, dplyr, lubridate)
 rm(list = ls(all.names = TRUE))
 gc(full = TRUE)
 options(stringsAsFactors = FALSE)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
-deaths <- read.csv("./deaths08.csv.bz2", header = TRUE)
+deaths <- read.csv("../deaths/deaths08.csv.bz2", header = TRUE)
 codes <- read.csv("../disease/icd-main.csv", header = TRUE)
-locations <- read.csv("../locations/locations.csv.bz2",header = TRUE)
+locations <-
+  read.csv("../locations/locations.csv.bz2", header = TRUE)
+states <- read.csv("../maps/state-map.csv.bz2", header = TRUE)
+daily <- na.omit(read.csv("../weather-simat2/weather-daily.csv",header = TRUE))
 
-cause <- arrange(count(deaths, "cod"), desc("freq"))
+cause <- arrange(count(deaths, "cod"), desc(freq))
 
 names(cause)[1] <- "code"
 cause <- join(cause, codes)
@@ -17,17 +20,19 @@ cause <- join(cause, codes)
 #               geom_point()+
 #         scale_x_log10()
 
+# top20 diseases ----------------------------------------------------------
+
 top20 <- head(cause, 20)
 ggplot(top20, aes(freq / 1e4, reorder(disease, freq))) +
-        geom_point() +
-        scale_x_log10("deaths (x 10,000)", breaks = 1:5)
+  geom_point() +
+  scale_x_log10("deaths (x 10,000)", breaks = 1:5)
 
 deaths$hod[deaths$hod == 99] <- NA
 deaths$hod[deaths$hod == 24] <- NA
 
 hod <- subset(count(deaths, "hod"),!is.na(hod))
 ggplot(hod, aes(x = hod, y = freq)) +
-        geom_line()
+  geom_line()
 
 hod2 <- count(deaths, c("cod", "hod"))
 hod2 <- ddply(hod2, "cod", mutate, prop = freq / sum(freq))
@@ -46,24 +51,35 @@ devi <- ddply(hod2,
               dist = mean((prop - prop_all) ^ 2))
 devi <- subset(devi, n > 50)
 
-deaths$loc <- with(deaths, str_c(statD, countyD, locationD, sep = "-"))
+deaths$loc <-
+  with(deaths, str_c(statD, countyD, locationD, sep = "-"))
 
-deaths$long <- with(locations,long[match(deaths$loc,id)])
-
-deaths$lat <- with(locations,lat[match(deaths$loc,id)])
-
+deaths$long <- with(locations, long[match(deaths$loc, id)])
+deaths$lat <- with(locations, lat[match(deaths$loc, id)])
 deaths["loc"] <- list(NULL)
-
 deaths <- na.omit(deaths)
 
+# Map visualization -------------------------------------------------------
 
-locs <- count(deaths,c("long","lat"))
-ggplot(locs,aes(long,lat)) +
-  geom_polygon(aes(group=group), data=states,
-               color="white",fill="grey90") +
-  geom_point(aes(size=freq,order=freq),
-             alpha=1/3, to=c(0.1,6))+
-  scale_area(breaks=c(1,100,500,1000,5000,10000),
-             to = c(0.5,10))+
+locs <- count(deaths, c("long", "lat"))
+ggplot(locs, aes(long, lat)) +
+  geom_polygon(aes(group = states$group),
+               data = states,
+               color = "white",
+               fill = "grey90") +
+    geom_point(aes(size = freq), alpha = 1 / 5) +
+  scale_size_area(breaks = c(1, 100, 500, 1000, 5000, 10000)) +
   coord_map()
 
+# Weather visualization ---------------------------------------------------
+
+deaths_2008 <-
+  deaths[which(
+    deaths$yod == 2008 & deaths$mod != 0 & deaths$dod != 0),
+    ]
+deaths_2008  <-
+  mutate(deaths_2008, dateod = ymd(str_c(yod, mod, dod, sep = '-')))
+deaths_2008  <- subset(count(deaths_2008,"dateod"))
+
+daily <- mutate(daily,day=ymd(daily$day))
+daily$freq <- with(daily,freq[match(day,deaths_2008$dateod)])
