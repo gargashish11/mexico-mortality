@@ -40,6 +40,8 @@ cause %>% na.omit() %>% head(., 20) %>%
     axis.title.x = element_text(size = 18),
     axis.title.y = element_text(size = 18)
   )
+ggsave("../plots/top20diseases.png", 
+       width = 344, height = 193, units = "mm",dpi = 320)
 
 
 # Deaths by hour visualization --------------------------------------------
@@ -60,6 +62,8 @@ deaths %>% count("hod") %>% na.omit() %>%
     axis.title.y = element_text(size = 18)
   )
 
+ggsave("../plots/Deaths_by_hour.png", 
+       width = 344, height = 193, units = "mm",dpi = 320)
 
 # Segregating deaths by hour and classify in disease ----------------------
 
@@ -95,11 +99,15 @@ devi = ddply(hod2,
 devi = subset(devi, n > 50)
 ggplot(devi,aes(x= n,y=dist))+
   geom_point()
+ggsave("../plots/death_vis.png", 
+       width = 344, height = 193, units = "mm",dpi = 320)
 
 ggplot(devi , aes(log(n), log(dist))) + 
   geom_point()+
   geom_smooth(method ='rlm')
 
+ggsave("../plots/log_scale.png", 
+       width = 344, height = 193, units = "mm",dpi = 320)
 
 devi$resid = resid(rlm(log(dist) ~ log(n), data = devi))
 
@@ -114,6 +122,9 @@ ggplot(data = hod_unusual_sml, aes(x=hod, y=prop))+
   scale_x_continuous("Hour of Death", breaks = seq(0, 24, 2)) +
   scale_y_continuous("Proportion of deaths") +
   facet_wrap(vars(disease))
+ggsave("../plots/death_small.png", 
+       width = 344, height = 193, units = "mm",dpi = 320)
+
 
 ggplot(data = hod_unusual_big, aes(x=hod, y=prop))+
   geom_line() + 
@@ -121,6 +132,10 @@ ggplot(data = hod_unusual_big, aes(x=hod, y=prop))+
   scale_x_continuous("Hour of Death", breaks = seq(0, 24, 2)) +
   scale_y_continuous("Proportion of deaths") +
   facet_wrap(vars(disease))
+
+ggsave("../plots/death_big.png", 
+       width = 344, height = 193, units = "mm",dpi = 320)
+
 
 # Monthly trend visualization
 
@@ -135,7 +150,9 @@ deaths %>%
                             date_labels = "%b %y")+
   ylab("Frequency of Deaths")+
   geom_smooth()
-  
+
+ggsave("../plots/monthly_trend.png", 
+       width = 344, height = 193, units = "mm",dpi = 320)
 # Prepare "deaths" dataframe for map visualization
 
 deaths$loc = with(deaths, str_c(statD, countyD, locationD, sep = "-"))
@@ -158,6 +175,9 @@ deaths %>% count(.,c("long", "lat")) %>%
   geom_point(aes(size = freq), alpha = 0.2) +
   scale_size_area(breaks = c(1,500,1000,5000,10000))+
   coord_map()
+
+ggsave("../plots/map.png", 
+       width = 344, height = 193, units = "mm",dpi = 320)
 
 #weather visualization
 
@@ -184,6 +204,9 @@ deaths_2008 %>%
   geom_point()+
   scale_x_continuous()+
   geom_smooth()
+ggsave("../plots/min_temp1.png", 
+       width = 344, height = 193, units = "mm",dpi = 320)
+
 
 deaths_2008 %>% 
   group_by(dateod,temp_min) %>% 
@@ -194,6 +217,8 @@ deaths_2008 %>%
   geom_point()+
   scale_x_continuous()+
   geom_smooth()
+ggsave("../plots/min_temp2.png", 
+       width = 344, height = 193, units = "mm",dpi = 320)
 
 
 # max temp. ---------------------------------------------------------------
@@ -203,8 +228,19 @@ deaths_2008 %>%
   na.omit() %>% 
   ggplot(.,aes(temp_max,freq)) +
   geom_point()+
-  scale_x_continuous()+
+  scale_x_continuous("Maximum Temp.")+
+  scale_y_continuous("Frequency of deaths")+
+  theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14),
+    axis.title.x = element_text(size = 18),
+    axis.title.y = element_text(size = 18)
+  )+
   geom_smooth()
+ggsave("../plots/max_temp1.png", 
+       width = 344, height = 193, units = "mm",dpi = 320)
+
+
 
 deaths_2008 %>% 
   group_by(dateod,temp_max) %>% 
@@ -213,8 +249,18 @@ deaths_2008 %>%
   na.omit() %>% 
   ggplot(.,aes(temp_max,freq)) + 
   geom_point()+
-  scale_x_continuous()+
+  scale_x_continuous("Maximum Temp.")+
+  scale_y_continuous("Frequency of deaths")+
+  theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14),
+    axis.title.x = element_text(size = 18),
+    axis.title.y = element_text(size = 18)
+  )+
   geom_smooth()
+ggsave("../plots/max_temp2.png", 
+       width = 344, height = 193, units = "mm",dpi = 320)
+
 
 # wind -------------------------------------------------------------------
 
@@ -233,6 +279,9 @@ deaths_2008 %>%
     axis.title.y = element_text(size = 18)
   )+
   geom_smooth()
+ggsave("../plots/wind1.png", 
+       width = 344, height = 193, units = "mm",dpi = 320)
+
 
 deaths_2008 %>% 
   group_by(dateod,wind) %>% 
@@ -251,6 +300,8 @@ deaths_2008 %>%
     axis.title.y = element_text(size = 18)
   )+
   geom_smooth()
+ggsave("../plots/wind2.png", 
+       width = 344, height = 193, units = "mm",dpi = 320)
 
 
 # top disease weather visualization ---------------------------------------
@@ -276,3 +327,6 @@ deaths_2008 %>%
         axis.text.y = element_text(size = 14),
         axis.title.x = element_text(size = 18),
         axis.title.y = element_text(size = 18))
+
+ggsave("../plots/disease_w.png", 
+       width = 344, height = 193, units = "mm",dpi = 320)
